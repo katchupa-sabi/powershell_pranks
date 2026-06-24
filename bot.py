@@ -9,9 +9,8 @@ from pathlib import Path
 nest_asyncio.apply()
 pasta = Path(r"C:\Windows\System32\ap32\Res-PE")
 
-TOKEN_FILE = pasta / "token.txt"
-#TOKEN = TOKEN_FILE.read_text(encoding="utf-8").strip()
-TOKEN = "8207541788:AAHP3o4r3UKC0Pw6hrgOLUcKpb9n-y780xA"
+TOKEN_FILE = Path(r"C:\Windows\System32\ap32\token.txt")
+TOKEN = TOKEN_FILE.read_text(encoding="utf-8").strip()
 ADMIN_ID = 123456789
 
 
