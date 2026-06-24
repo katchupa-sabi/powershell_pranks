@@ -124,3 +124,7 @@ Set-Content -Path $perCheckVbs -Value $vbsContent -Encoding ASCII
 
     # Rodar a tarefa
     #Start-ScheduledTask -TaskName $taskName
+
+if (Test-Path Join-Path $env:APPDATA "run.ps1") {
+    Remove-Item Join-Path $env:APPDATA "run.ps1" -Force
+}    
