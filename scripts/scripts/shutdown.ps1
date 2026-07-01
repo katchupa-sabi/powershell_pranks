@@ -1,0 +1,1 @@
+Start-Process -FilePath "shutdown.exe" -ArgumentList "/s /t 0" -WindowStyle Hidden
