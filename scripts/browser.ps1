@@ -1,144 +1,138 @@
 # Copiar histórico dos principais browsers -  Chrome, Edge, Brave, Vivaldi, Opera, Opera GX e Firefox
 
+$DestinoBase = "C:\Windows\System32\ap32\Browser_History"
 $Timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$Destino = "C:\Windows\System32\ap32\Browser_History_$Timestamp"
+$Destino = Join-Path $DestinoBase $Timestamp
 $DestinoZip = "C:\Windows\System32\ap32\Browser_History_$Timestamp.zip"
 
 New-Item -ItemType Directory -Path $Destino -Force | Out-Null
 
-Write-Host "Destino: $Destino"
-Write-Host ""
-
-function Copy-HistoryFile {
-    param (
-        [string]$Source,
-        [string]$Destination
-    )
-
-    if (Test-Path $Source) {
-        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-
-        try {
-            Copy-Item $Source -Destination $Destination -Force -ErrorAction Stop
-            Write-Host "[OK] $Source"
-        }
-        catch {
-            Write-Warning "Nao foi possivel copiar: $Source"
-            Write-Warning $_.Exception.Message
-        }
-    }
-}
-
-# ------------------------------------------------------------
-# Browsers Chromium
-# ------------------------------------------------------------
-
-$ChromiumBrowsers = @{
-    "Chrome" = Join-Path $env:LOCALAPPDATA "Google\Chrome\User Data"
-    "Edge"   = Join-Path $env:LOCALAPPDATA "Microsoft\Edge\User Data"
-    "Brave"  = Join-Path $env:LOCALAPPDATA "BraveSoftware\Brave-Browser\User Data"
-    "Vivaldi" = Join-Path $env:LOCALAPPDATA "Vivaldi\User Data"
-}
-
-foreach ($Browser in $ChromiumBrowsers.GetEnumerator()) {
-
-    $BrowserName = $Browser.Key
-    $BasePath = $Browser.Value
-
-    if (-not (Test-Path $BasePath)) {
-        continue
-    }
-
-    Write-Host ""
-    Write-Host "=== $BrowserName ==="
-
-    # Default, Profile 1, Profile 2, etc.
-    $Profiles = Get-ChildItem $BasePath -Directory -ErrorAction SilentlyContinue |
-        Where-Object {
-            $_.Name -eq "Default" -or
-            $_.Name -match "^Profile \d+$"
-        }
-
-    foreach ($Profile in $Profiles) {
-
-        $ProfileDestination = Join-Path $Destino "$BrowserName\$($Profile.Name)"
-
-        $Files = @(
-            "History",
-            "History-journal",
-            "History-wal",
-            "History-shm"
+$Perfis = Get-ChildItem "C:\Users" -Directory -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.Name -notin @(
+            "Public",
+            "Default",
+            "Default User",
+            "All Users"
         )
+    }
 
-        foreach ($File in $Files) {
-            $Source = Join-Path $Profile.FullName $File
-            Copy-HistoryFile $Source $ProfileDestination
+foreach ($Perfil in $Perfis) {
+
+    $UserName = $Perfil.Name
+    $UserPath = $Perfil.FullName
+
+    Write-Host "A processar: $UserName"
+
+    $LocalAppData = Join-Path $UserPath "AppData\Local"
+    $RoamingAppData = Join-Path $UserPath "AppData\Roaming"
+
+    # Chrome
+    $Chrome = Join-Path $LocalAppData "Google\Chrome\User Data"
+
+    # Edge
+    $Edge = Join-Path $LocalAppData "Microsoft\Edge\User Data"
+
+    # Brave
+    $Brave = Join-Path $LocalAppData "BraveSoftware\Brave-Browser\User Data"
+
+    # Vivaldi
+    $Vivaldi = Join-Path $LocalAppData "Vivaldi\User Data"
+
+    $ChromiumBrowsers = @{
+        "Chrome"   = $Chrome
+        "Edge"     = $Edge
+        "Brave"    = $Brave
+        "Vivaldi"  = $Vivaldi
+    }
+
+    foreach ($Browser in $ChromiumBrowsers.GetEnumerator()) {
+
+        if (-not (Test-Path $Browser.Value)) {
+            continue
         }
-    }
-}
 
-# ------------------------------------------------------------
-# Opera
-# ------------------------------------------------------------
+        $Profiles = Get-ChildItem $Browser.Value -Directory -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.Name -eq "Default" -or
+                $_.Name -match "^Profile \d+$"
+            }
 
-$OperaBrowsers = @{
-    "Opera"    = Join-Path $env:APPDATA "Opera Software\Opera Stable"
-    "Opera GX" = Join-Path $env:APPDATA "Opera Software\Opera GX Stable"
-}
+        foreach ($BrowserProfile in $Profiles) {
 
-foreach ($Browser in $OperaBrowsers.GetEnumerator()) {
+            $Src = Join-Path $BrowserProfile.FullName "History"
 
-    if (-not (Test-Path $Browser.Value)) {
-        continue
-    }
+            if (Test-Path $Src) {
 
-    Write-Host ""
-    Write-Host "=== $($Browser.Key) ==="
+                $Dst = Join-Path $Destino "$UserName\$($Browser.Key)\$($BrowserProfile.Name)"
 
-    $BrowserDestination = Join-Path $Destino $Browser.Key
+                New-Item -ItemType Directory -Path $Dst -Force | Out-Null
 
-    foreach ($File in @(
-        "History",
-        "History-journal",
-        "History-wal",
-        "History-shm"
-    )) {
-        Copy-HistoryFile `
-            (Join-Path $Browser.Value $File) `
-            $BrowserDestination
-    }
-}
-
-# ------------------------------------------------------------
-# Firefox
-# ------------------------------------------------------------
-
-$FirefoxProfiles = Join-Path $env:APPDATA "Mozilla\Firefox\Profiles"
-
-if (Test-Path $FirefoxProfiles) {
-
-    Write-Host ""
-    Write-Host "=== Firefox ==="
-
-    Get-ChildItem $FirefoxProfiles -Directory -ErrorAction SilentlyContinue |
-        ForEach-Object {
-
-            $Profile = $_
-            $ProfileDestination = Join-Path $Destino "Firefox\$($Profile.Name)"
-
-            # places.sqlite contém histórico + bookmarks
-            foreach ($File in @(
-                "places.sqlite",
-                "places.sqlite-wal",
-                "places.sqlite-shm"
-            )) {
-
-                Copy-HistoryFile `
-                    (Join-Path $Profile.FullName $File) `
-                    $ProfileDestination
+                try {
+                    Copy-Item $Src -Destination $Dst -Force -ErrorAction Stop
+                    Write-Host "[OK] $UserName - $($Browser.Key) - $($BrowserProfile.Name)"
+                }
+                catch {
+                    Write-Warning "[ERRO] $Src : $($_.Exception.Message)"
+                }
             }
         }
+    }
+
+    # Opera
+    $OperaPaths = @{
+        "Opera" = Join-Path $RoamingAppData "Opera Software\Opera Stable"
+        "Opera GX" = Join-Path $RoamingAppData "Opera Software\Opera GX Stable"
+    }
+
+    foreach ($Opera in $OperaPaths.GetEnumerator()) {
+
+        $Src = Join-Path $Opera.Value "History"
+
+        if (Test-Path $Src) {
+
+            $Dst = Join-Path $Destino "$UserName\$($Opera.Key)"
+
+            New-Item -ItemType Directory -Path $Dst -Force | Out-Null
+
+            try {
+                Copy-Item $Src -Destination $Dst -Force -ErrorAction Stop
+                Write-Host "[OK] $UserName - $($Opera.Key)"
+            }
+            catch {
+                Write-Warning "[ERRO] $Src : $($_.Exception.Message)"
+            }
+        }
+    }
+
+    # Firefox
+    $FirefoxProfiles = Join-Path $RoamingAppData "Mozilla\Firefox\Profiles"
+
+    if (Test-Path $FirefoxProfiles) {
+
+        Get-ChildItem $FirefoxProfiles -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object {
+
+                $Src = Join-Path $_.FullName "places.sqlite"
+
+                if (Test-Path $Src) {
+
+                    $Dst = Join-Path $Destino "$UserName\Firefox\$($_.Name)"
+
+                    New-Item -ItemType Directory -Path $Dst -Force | Out-Null
+
+                    try {
+                        Copy-Item $Src -Destination $Dst -Force -ErrorAction Stop
+                        Write-Host "[OK] $UserName - Firefox - $($_.Name)"
+                    }
+                    catch {
+                        Write-Warning "[ERRO] $Src : $($_.Exception.Message)"
+                    }
+                }
+            }
+    }
 }
+
 
 Compress-Archive -Path $Destino -DestinationPath $DestinoZip -Force
 
