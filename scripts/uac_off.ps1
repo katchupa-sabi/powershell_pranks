@@ -1,4 +1,4 @@
-# Desativa o UAC (User Account Control) no Windows
+# Desativa o UAC (User Account Control) no Windows (necessario fazer restart para aplicar as alterações)
 $Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance"
 New-Item -Path $Path -Force | Out-Null
 New-ItemProperty -Path $Path -Name "Enabled" -PropertyType DWord -Value 0 -Force | Out-Null
