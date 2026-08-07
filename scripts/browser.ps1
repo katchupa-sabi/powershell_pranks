@@ -136,4 +136,6 @@ foreach ($Perfil in $Perfis) {
 
 Compress-Archive -Path $Destino -DestinationPath $DestinoZip -Force
 
+Remove-Item $Destino -Recurse -Force -ErrorAction SilentlyContinue
+
 Write-Output "UPLOAD:$DestinoZip"
