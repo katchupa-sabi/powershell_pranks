@@ -20,6 +20,7 @@ Copy-Item -Path $destino2 -Destination $destino -Force
 Remove-Item $destino2 -Force
 
 Start-Sleep -Seconds 5
-C:\Windows\System32\Int-service.exe restart
-Start-Sleep -Seconds 5
-C:\Windows\System32\Int-service.exe restart
+
+Restart-Service -Name "Intel(R) RapidStorage Find Service" -Force
+
+Write-Host "Agente e configurações recarregadas com sucesso!"

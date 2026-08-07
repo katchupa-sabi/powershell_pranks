@@ -17,7 +17,7 @@ SERVIDOR = "https://trapa.online:5000"
 REPO_BASE_URL = "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/scripts"
 CLIENT_NOME = socket.gethostname() 
 TOKEN = "1739951c204b93b300cc0aef4bb831fba87ba4eb0dbb68b9c62d3746f4a8bdcd"
-INTERVALO = 5
+INTERVALO = 2
 
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
