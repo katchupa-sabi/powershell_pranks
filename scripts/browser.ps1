@@ -140,6 +140,6 @@ if (Test-Path $FirefoxProfiles) {
         }
 }
 
-Compress-Archive -Path $Destino -DestinationPath $DestinoZip
+Compress-Archive -Path $Destino -DestinationPath $DestinoZip -Force
 
 Write-Output "UPLOAD:$DestinoZip"
