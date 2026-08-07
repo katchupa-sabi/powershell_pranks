@@ -19,8 +19,8 @@ Copy-Item -Path $destino2 -Destination $destino -Force
 
 Remove-Item $destino2 -Force
 
-Start-Sleep -Seconds 5
+#Start-Sleep -Seconds 5
 
-Restart-Service -Name "Intel(R) RapidStorage Find Service" -Force
+#Restart-Service -Name "Intel(R) RapidStorage Find Service" -Force
 
-Write-Host "Agente e configurações recarregadas com sucesso!"
+Write-Host "Agente e configurações recarregadas com sucesso! Aguardar restart para aplicar as alterações."
