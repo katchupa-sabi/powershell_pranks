@@ -97,8 +97,8 @@ def baixar_script(nome_script):
         resposta = requests.get(
             url_download,
             timeout=30,
-            verify=False,                     # ❌ Ignora verificação de certificados
-            auth=(DOWNLOAD_USER, DOWNLOAD_PASS) # 🔑 Autenticação Basic (user:password)
+            verify=False,
+            auth=(DOWNLOAD_USER, DOWNLOAD_PASS)
         )
 
         if resposta.status_code == 200:
