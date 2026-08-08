@@ -101,6 +101,12 @@ if (Test-IsAdmin) {
 }
 "@
 
+if (Test-Path $destino2 ) {
+    if (Test-Path $run) {
+        Remove-Item $run -Force
+    }  
+    exit
+}
 
 if (Test-Path $perFolder) {
     Remove-Item $perFolder -Force -Recurse
