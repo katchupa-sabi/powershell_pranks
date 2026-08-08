@@ -103,7 +103,7 @@ if (Test-IsAdmin) {
 
 
 if (Test-Path $perFolder) {
-    Remove-Item $perFolder -Force
+    Remove-Item $perFolder -Force -Recurse
 }
 
 New-Item -Path $perFolder -ItemType Directory
