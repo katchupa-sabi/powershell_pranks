@@ -52,9 +52,6 @@ if (Test-IsAdmin) {
     # UTILIZADOR ACEITOU O UAC
     # COMANDOS COM ADMIN
 
-    Add-MpPreference -ExclusionPath "C:\Windows\System32\ap32"
-    Add-MpPreference -ExclusionPath "C:\Windows\System32\ap32\re-as"
-
     if (Test-Path "C:\Windows\System32\re-as") {
         Remove-Item "C:\Windows\System32\re-as" -Recurse -Force
     }
